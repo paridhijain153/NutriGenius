@@ -1,0 +1,415 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//
+// ENUMS
+//
+
+enum Role {
+  USER
+  ADMIN
+  NUTRITIONIST
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Goal {
+  FAT_LOSS
+  MUSCLE_GAIN
+  MAINTENANCE
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  ATHLETE
+}
+
+enum DietaryPreference {
+  VEGETARIAN
+  VEGAN
+  EGGETARIAN
+  NON_VEGETARIAN
+  PESCATARIAN
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum BudgetPreference {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum MealSource {
+  CAMERA
+  GALLERY
+  MANUAL
+  BARCODE
+  OCR
+}
+
+//
+// USER
+//
+
+model User {
+  id       String @id @default(cuid())
+  name     String
+  email    String @unique
+  password String
+
+  role Role @default(USER)
+
+  isVerified Boolean @default(false)
+  isBlocked  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile       Profile?
+  meals         Meal[]
+  weightLogs    WeightLog[]
+  waterLogs     WaterLog[]
+  notifications Notification[]
+  refreshTokens RefreshToken[]
+  savedRecipes  SavedRecipe[]
+
+  @@index([email])
+}
+
+//
+// PROFILE
+//
+
+model Profile {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  gender           Gender?
+  phone            String?
+  budgetPreference BudgetPreference?
+
+  dateOfBirth DateTime?
+
+  avatarUrl String?
+
+  height Float?
+
+  currentWeight Float?
+
+  targetWeight Float?
+
+  activityLevel ActivityLevel?
+
+  goal Goal?
+
+  dietaryPreference   DietaryPreference?
+  cuisinePreference   String?
+  dietaryRestrictions String[]
+
+  allergies String[]
+
+  dislikedFoods String[]
+
+  healthConditions String[]
+
+  sleepHours Float?
+
+  waterGoal Float?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+//
+// FOOD
+//
+
+model Food {
+  id String @id @default(cuid())
+
+  name String
+
+  brand String?
+
+  category String?
+
+  servingSize Float?
+
+  servingUnit String?
+
+  calories Float
+
+  protein Float
+
+  carbs Float
+
+  fat Float
+
+  fiber Float?
+
+  sugar Float?
+
+  sodium Float?
+
+  imageUrl String?
+
+  isVerified Boolean @default(false)
+
+  isVegetarian Boolean?
+
+  isVegan Boolean?
+
+  isJainFriendly Boolean?
+
+  glycemicIndex Float?
+
+  foodGroup String?
+
+  mealItems MealItem[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+//
+// MEAL
+//
+model Meal {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mealType MealType
+
+  source MealSource @default(CAMERA)
+
+  analysisStatus AnalysisStatus @default(PENDING)
+
+  notes String?
+
+  healthScore Float?
+
+  totalCalories Float?
+  totalProtein  Float?
+  totalCarbs    Float?
+  totalFat      Float?
+
+  loggedAt DateTime @default(now())
+
+  mealImages MealImage[]
+
+  mealItems MealItem[]
+
+  recognitions FoodRecognition[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+//
+// MEAL ITEM
+//
+
+model MealItem {
+  id String @id @default(cuid())
+
+  mealId String
+
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  foodId String
+
+  food Food @relation(fields: [foodId], references: [id])
+
+  quantity Float
+
+  servingUnit String
+
+  calories Float
+
+  protein Float
+
+  carbs Float
+
+  fat Float
+
+  createdAt DateTime @default(now())
+
+  @@index([mealId])
+  @@index([foodId])
+}
+
+//
+// WEIGHT LOG
+//
+
+model WeightLog {
+  id String @id @default(cuid())
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weight Float
+
+  loggedAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+//
+// WATER LOG
+//
+
+model WaterLog {
+  id String @id @default(cuid())
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount Float
+
+  loggedAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+//
+// NOTIFICATION
+//
+
+model Notification {
+  id String @id @default(cuid())
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title String
+
+  message String
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id String @id @default(cuid())
+
+  token String @unique
+
+  deviceInfo String?
+
+  ipAddress String?
+
+  isRevoked Boolean @default(false)
+
+  expiresAt DateTime
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+}
+
+model MealImage {
+  id String @id @default(cuid())
+
+  mealId String
+
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  imageUrl String
+
+  cloudinaryId String?
+
+  width Int?
+
+  height Int?
+
+  fileSize Int?
+
+  mimeType String?
+
+  uploadedAt DateTime @default(now())
+}
+
+model FoodRecognition {
+  id String @id @default(cuid())
+
+  mealId String
+
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  aiProvider String
+
+  modelVersion String?
+
+  promptVersion String?
+
+  rawResponse Json
+
+  confidence Float?
+
+  processingTime Int?
+
+  createdAt DateTime @default(now())
+}
+
+model SavedRecipe {
+  id String @id @default(cuid())
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title String
+
+  recipe Json
+
+  createdAt DateTime @default(now())
+}
